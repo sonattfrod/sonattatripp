@@ -15,10 +15,10 @@ import { registerSchema, type RegisterFormData } from '@/lib/validations/auth'
 import { createClient } from '@/lib/supabase/client'
 
 const passwordRequirements = [
-  { id: 'length', label: 'Minimal 8 karakter', test: (p) => p.length >= 8 },
-  { id: 'upper', label: 'Huruf besar (A-Z)', test: (p) => /[A-Z]/.test(p) },
-  { id: 'lower', label: 'Huruf kecil (a-z)', test: (p) => /[a-z]/.test(p) },
-  { id: 'number', label: 'Angka (0-9)', test: (p) => /\d/.test(p) },
+  { id: 'length', label: 'Minimal 8 karakter', test: (p: string) => p.length >= 8 },
+  { id: 'upper', label: 'Huruf besar (A-Z)', test: (p: string) => /[A-Z]/.test(p) },
+  { id: 'lower', label: 'Huruf kecil (a-z)', test: (p: string) => /[a-z]/.test(p) },
+  { id: 'number', label: 'Angka (0-9)', test: (p: string) => /\d/.test(p) },
 ]
 
 export default function RegisterPage() {
@@ -64,7 +64,7 @@ export default function RegisterPage() {
 
       toast.success('Akun berhasil dibuat! Silakan login.')
       router.push('/login')
-    } catch (error) {
+    } catch {
       toast.error('Terjadi kesalahan saat membuat akun')
     } finally {
       setIsLoading(false)
@@ -85,7 +85,7 @@ export default function RegisterPage() {
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl text-center">Buat Akun</CardTitle>
             <CardDescription className="text-center">
-              Daftar gratis dan mulai rencanakan perjalanan Anda
+              Daftar dan mulai rencanakan perjalanan Anda
             </CardDescription>
           </CardHeader>
           <CardContent>
