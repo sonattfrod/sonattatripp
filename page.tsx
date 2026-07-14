@@ -6,15 +6,22 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
-import { Eye, EyeOff, Loader2, Plane } from 'lucide-react'
+import { Eye, EyeOff, Loader2, Plane, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { loginSchema, type LoginFormData } from '@/lib/validations/auth'
+import { registerSchema, type RegisterFormData } from '@/lib/validations/auth'
 import { createClient } from '@/lib/supabase/client'
 
-export default function LoginPage() {
+const passwordRequirements = [
+  { id: 'length', label: 'Minimal 8 karakter', test: (p: string) => p.length >= 8 },
+  { id: 'upper', label: 'Huruf besar (A-Z)', test: (p: string) => /[A-Z]/.test(p) },
+  { id: 'lower', label: 'Huruf kecil (a-z)', test: (p: string) => /[a-z]/.test(p) },
+  { id: 'number', label: 'Angka (0-9)', test: (p: string) => /\d/.test(p) },
+]
+
+export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
@@ -23,22 +30,31 @@ export default function LoginPage() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
-    setValue,
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
     defaultValues: {
+      fullName: '',
       email: '',
       password: '',
+      confirmPassword: '',
     },
   })
 
-  const onSubmit = async (data: LoginFormData) => {
+  const password = watch('password', '')
+
+  const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true)
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
+        options: {
+          data: {
+            full_name: data.fullName,
+          },
+        },
       })
 
       if (error) {
@@ -46,11 +62,10 @@ export default function LoginPage() {
         return
       }
 
-      toast.success('Login berhasil!')
-      router.push('/dashboard')
-      router.refresh()
+      toast.success('Akun berhasil dibuat! Silakan login.')
+      router.push('/login')
     } catch (error) {
-      toast.error('Terjadi kesalahan saat login')
+      toast.error('Terjadi kesalahan saat membuat akun')
     } finally {
       setIsLoading(false)
     }
@@ -68,13 +83,27 @@ export default function LoginPage() {
 
         <Card>
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">Selamat Datang</CardTitle>
+            <CardTitle className="text-2xl text-center">Buat Akun</CardTitle>
             <CardDescription className="text-center">
-              Masukkan kredensial Anda untuk mengakses akun
+              Daftar gratis dan mulai rencanakan perjalanan Anda
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Nama Lengkap</Label>
+                <Input
+                  id="fullName"
+                  type="text"
+                  placeholder="Masukkan nama lengkap"
+                  {...register('fullName')}
+                  aria-invalid={!!errors.fullName}
+                />
+                {errors.fullName && (
+                  <p className="text-xs text-destructive">{errors.fullName.message}</p>
+                )}
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -90,15 +119,7 @@ export default function LoginPage() {
               </div>
 
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                  <Link
-                    href="/forgot-password"
-                    className="text-xs text-primary hover:underline"
-                  >
-                    Lupa password?
-                  </Link>
-                </div>
+                <Label htmlFor="password">Password</Label>
                 <div className="relative">
                   <Input
                     id="password"
@@ -130,17 +151,56 @@ export default function LoginPage() {
                 )}
               </div>
 
+              {password && (
+                <div className="space-y-2 p-3 bg-muted/50 rounded-lg">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">
+                    Password harus mengandung:
+                  </p>
+                  <div className="space-y-1">
+                    {passwordRequirements.map((req) => (
+                      <div
+                        key={req.id}
+                        className={`flex items-center gap-2 text-xs ${
+                          req.test(password) ? 'text-green-600' : 'text-muted-foreground'
+                        }`}
+                      >
+                        <Check
+                          className={`h-3 w-3 ${
+                            req.test(password) ? 'opacity-100' : 'opacity-30'
+                          }`}
+                        />
+                        {req.label}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Konfirmasi Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  {...register('confirmPassword')}
+                  aria-invalid={!!errors.confirmPassword}
+                />
+                {errors.confirmPassword && (
+                  <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>
+                )}
+              </div>
+
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Masuk
+                Daftar
               </Button>
             </form>
           </CardContent>
           <CardFooter className="flex flex-col space-y-2">
             <p className="text-sm text-muted-foreground text-center">
-              Belum punya akun?{' '}
-              <Link href="/register" className="text-primary hover:underline">
-                Daftar sekarang
+              Sudah punya akun?{' '}
+              <Link href="/login" className="text-primary hover:underline">
+                Masuk
               </Link>
             </p>
           </CardFooter>
